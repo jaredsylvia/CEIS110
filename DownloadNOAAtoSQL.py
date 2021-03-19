@@ -2,6 +2,7 @@
 #Name: Jared Sylvia
 #Date: 3/16/2021
 #   See https://pypi.org/project/noaa-sdk/ for details on noaa_sdk package used
+# Original script supplied for coursework, this one has been modified to use MySQL instead of SQLite
 
 from noaa_sdk import noaa
 import mysql.connector
