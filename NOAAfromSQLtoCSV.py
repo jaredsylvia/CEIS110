@@ -27,7 +27,7 @@ dbFile = "weather.db"
 conn = mysql.connector.connect(user=mySQLuser, password=mySQLpass, host='127.0.0.1', database='ceis110')
 #create cursor to execute SQL commands
 cur = conn.cursor()
-selectCmd = """ SELECT temperature, relativeHumidity FROM observations
+selectCmd = """ SELECT temperature, relativeHumidity, timestamp FROM observations
                 ORDER BY timestamp; """
 cur.execute(selectCmd)
 allRows = cur.fetchall()
@@ -37,7 +37,7 @@ rows = allRows[:rowCount]
 
 #write data to output file
 with open(output_file_name,"w+") as outf:
-    outf.write('Celsius,Fahrenheit,Humidity')
+    outf.write('Celsius,Fahrenheit,Humidity,Time')
     outf.write('\n')
     for row in rows:
         tempC = row[0]
@@ -49,6 +49,8 @@ with open(output_file_name,"w+") as outf:
             outf.write(str(tempF)+',')
         humidity = row[1]
         if humidity is None:   #handle missing humidity value
-            outf.write('\n')
+            outf.write(',')
         else:
-            outf.write(str(humidity)+'\n') #print data to file separated by commas
+            outf.write(str(humidity)+',') #print data to file separated by commas
+        timestamp = row[2]
+        outf.write(str(timestamp)+'/n')
