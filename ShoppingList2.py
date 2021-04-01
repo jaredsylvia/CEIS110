@@ -21,7 +21,7 @@ def addItem():
        
 
 print('Create and display a shopping list.')
-print('Enter done for name of last item on list.')
+print('Enter done for name to finish list.')
 
 shoppingList = addItem();
 
