@@ -37,6 +37,11 @@ plt.pie(shoppingList['qty'], labels = shoppingList['item'], startangle=45, shado
 plt.title('Total Individual Items')
 plt.show()
 
+print('Shopping List:')
+for i in range(len(shoppingList['item'])):
+    print(shoppingList['item'][i], ':', str(shoppingList['qty'][i]), 'at', str(shoppingList['price'][i]), 'each.')
+    
+        
 
 
 
