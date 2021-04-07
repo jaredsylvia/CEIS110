@@ -108,17 +108,12 @@ def draw_lineChart() -> Figure:
     ax.legend()
     return figure
 
-def redraw_figure():
-    global canvas
-    figure = draw_violinPlot()
-    canvas.figure = figure
-    canvas.draw()
-    sns.set()
+
     
 
 root = tkinter.Tk()
 
-canvas = init_gui(root, update_function=redraw_figure)
+canvas = init_gui(root, update_function=draw_violinPlot())
 
 tkinter.mainloop()
     
