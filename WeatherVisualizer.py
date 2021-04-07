@@ -103,7 +103,7 @@ def draw_lineChart() -> Figure:
     sns.color_palette('tab10')
     sns.lineplot(data=pdResult, ax=ax, x='shortDate', y='temperature', label='Temperature' )
     sns.lineplot(data=pdResult, ax=ax, x='shortDate', y='relativeHumidity', label='Humidity')
-    ax.set(xlabel='Date', ylabel='Temperature')
+    ax.set(xlabel='Date', ylabel='Value')
     ax.set_xticklabels(labels, rotation=45, horizontalalignment='right')
     ax.legend()
     return figure
