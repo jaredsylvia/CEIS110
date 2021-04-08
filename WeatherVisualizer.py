@@ -23,45 +23,12 @@ SQLdb = 'ceis110'
 zipCode = "95355"  
 country = "US" 
 
-## LATER: Functionize some of this stuff so the load time isn't so long
+
 conn = mysql.connector.connect(user=SQLuser, password=SQLpass, host=SQLhost, database=SQLdb)
 cursor = conn.cursor(dictionary=True)
 
-# Get new data
-query = 'SELECT MAX(timestamp) FROM observations'
-cursor.execute(query,())
-sqlResult = cursor.fetchall()
-startDate = datetime.datetime.strptime(str(sqlResult[0]['MAX(timestamp)']), "%Y-%m-%dT%H:%M:%S%z" ).strftime("%Y-%m-%dT%H:%M:%SZ") #changed from - "%Y-%m-%dT00:00:00Z"
-endDate = (datetime.datetime.now() + datetime.timedelta(hours=8)).strftime("%Y-%m-%dT%H:%M:%SZ") #changed from - "%Y-%m-%dT23:59:59Z"
-#print(startDate)
-#print(endDate)
-##Stolen from DB creation script
-n = noaa.NOAA()
-observations =  n.get_observations(zipCode,country,startDate,endDate)
 
-
-insertQuery = """ REPLACE INTO observations 
-                    (timestamp, windSpeed, temperature, relativeHumidity, 
-                     windDirection, barometricPressure, visibility, textDescription)
-                VALUES
-                    (%s, %s, %s, %s, %s, %s, %s, %s) """                       #changed ? to %s to fit MySQL/MariaDB standards
-## LATER: Convert noaa dataset to pandas dataframe and insert once?
-count = 0
-for obs in observations:
-    insertValues = (obs["timestamp"],
-                    obs["windSpeed"]["value"],
-                    obs["temperature"]["value"],
-                    obs["relativeHumidity"]["value"],
-                    obs["windDirection"]["value"],
-                    obs["barometricPressure"]["value"],
-                    obs["visibility"]["value"],
-                    obs["textDescription"])
-    cursor.execute(insertQuery, insertValues)
-    count += 1
-if count > 0:
-    cursor.execute("COMMIT;")
-
-#Now get full table
+#Get SQL table
 
 query = 'SELECT * FROM observations'
 cursor.execute(query,())
@@ -73,21 +40,19 @@ pdResult = pd.DataFrame(sqlResult)
 pdResult['timestamp'] = pd.to_datetime(pdResult['timestamp']) - pd.Timedelta(hours=8)
 pdResult['shortDate'] = pd.to_datetime(pdResult['timestamp']).apply(lambda x:x.date().strftime('%m/%d/%y')) #labels was shortDate
 pdResult['barometricPressure'] = pdResult['barometricPressure'].astype(int) / 100
-#pdResult['labels'] = pdResult['timestamp']
-#pdResult['shortDate'] = pdResult['shortDate'].apply(lambda x:x.date().strftime('%m/%d/%y'))
 pdResult.set_index('timestamp').sort_values(by='timestamp')
 pdResultConst = pdResult.copy()
 labels = pdResult['shortDate'].unique()
-#print(pdResult['timestamp'])
-#print(pdResult['timestamp']   - pd.Timedelta(hours=8))
 
 
+xlabelNum = 14
 #Pandas dataframe tailing - MAYBE: Map all global variable calls to passing arguments
 def timeButton(days):
     global pdResult
     global pdResultConst
     global labels
-    
+    global xlabelNum
+    xlabelNum = days
     
     pdResult = pdResultConst.copy()
     endDate = datetime.datetime.now()
@@ -100,6 +65,47 @@ def timeButton(days):
     #pdResult = pdResult.date_range(startDate, endDate)
     labels = pdResult['shortDate'].unique()
 
+
+def newData():
+    # Get new data
+    query = 'SELECT MAX(timestamp) FROM observations'
+    cursor.execute(query,())
+    sqlResult = cursor.fetchall()
+    startDate = datetime.datetime.strptime(str(sqlResult[0]['MAX(timestamp)']), "%Y-%m-%dT%H:%M:%S%z" ).strftime("%Y-%m-%dT%H:%M:%SZ") #changed from - "%Y-%m-%dT00:00:00Z"
+    endDate = (datetime.datetime.now() + datetime.timedelta(hours=8)).strftime("%Y-%m-%dT%H:%M:%SZ") #changed from - "%Y-%m-%dT23:59:59Z"
+
+    ##Stolen from DB creation script
+    n = noaa.NOAA()
+    observations =  n.get_observations(zipCode,country,startDate,endDate)
+    
+    
+    insertQuery = """ REPLACE INTO observations 
+                        (timestamp, windSpeed, temperature, relativeHumidity, 
+                         windDirection, barometricPressure, visibility, textDescription)
+                    VALUES
+                        (%s, %s, %s, %s, %s, %s, %s, %s) """                       #changed ? to %s to fit MySQL/MariaDB standards
+    ## LATER: Convert noaa dataset to pandas dataframe and insert once?
+    count = 0
+    for obs in observations:
+        insertValues = (obs["timestamp"],
+                        obs["windSpeed"]["value"],
+                        obs["temperature"]["value"],
+                        obs["relativeHumidity"]["value"],
+                        obs["windDirection"]["value"],
+                        obs["barometricPressure"]["value"],
+                        obs["visibility"]["value"],
+                        obs["textDescription"])
+        cursor.execute(insertQuery, insertValues)
+        count += 1
+    if count > 0:
+        cursor.execute("COMMIT;")
+    
+    #Now get full table
+    
+    query = 'SELECT * FROM observations'
+    cursor.execute(query,())
+    sqlResult = cursor.fetchall()
+
 #Tkinter GUI
 
 def init_gui(root, update_function: Callable) -> FigureCanvasTkAgg:
@@ -107,13 +113,7 @@ def init_gui(root, update_function: Callable) -> FigureCanvasTkAgg:
     
     
     def selectChart(*args):
-        #global pdResult
-        #global pdResultConst
-        #global labels
-        #pdResult = pdResultConst.copy()
-        #labels = pdResult['shortDate'].unique()
-        
-        #figGen()
+
         if chartType.get() == 'Violin':
             figure = draw_violinPlot()
         
@@ -158,23 +158,27 @@ def init_gui(root, update_function: Callable) -> FigureCanvasTkAgg:
 
     graphChartType = tkinter.OptionMenu(leftFrame, chartType, 'Violin', 'Line', 'FourHist', 'HeatMap')
     graphChartType.grid(column=0, row=0)
-    graphChartType.config(width=10)    
+    graphChartType.config(width=20)    
 
     oneDayBtn = tkinter.Button(leftFrame, text="One Day", command=lambda: timeButton(1))
     oneDayBtn.grid(column=0, row=1)
-    oneDayBtn.config(width=10)
+    oneDayBtn.config(width=20)
     
     threeDayBtn = tkinter.Button(leftFrame, text="Three Days", command=lambda: timeButton(3))
     threeDayBtn.grid(column=0, row=2)
-    threeDayBtn.config(width=10)
+    threeDayBtn.config(width=20)
     
     oneWeekBtn = tkinter.Button(leftFrame, text="One Week", command=lambda: timeButton(7))
     oneWeekBtn.grid(column=0, row=3)
-    oneWeekBtn.config(width=10)
+    oneWeekBtn.config(width=20)
     
     twoWeekBtn = tkinter.Button(leftFrame, text="Two Weeks", command=lambda: timeButton(14))
     twoWeekBtn.grid(column=0, row=4)
-    twoWeekBtn.config(width=10)
+    twoWeekBtn.config(width=20)
+    
+    getDataBtn = tkinter.Button(leftFrame, text="New Data", command=newData)
+    getDataBtn.grid(column=0, row=5)
+    getDataBtn.config(width=20)
     
         
     rightFrame = tkinter.Frame(root)
@@ -184,16 +188,7 @@ def init_gui(root, update_function: Callable) -> FigureCanvasTkAgg:
     canvas = FigureCanvasTkAgg(init_figure, rightFrame)
     canvas.draw()
     canvas.get_tk_widget().grid(column=1,row=1)    
-    
-    
-    
-     
-    
-
-    
-    
-    
-    
+        
     return canvas
   
 
@@ -209,7 +204,7 @@ def intSNS() -> Figure:
 def draw_violinPlot() -> Figure:
     figure = intSNS()
     ax = figure.subplots()
-    sns.violinplot(data = pdResult, ax=ax, x='shortDate', y='temperature')
+    sns.violinplot(data = pdResult.dropna(subset=['temperature']), ax=ax, x='shortDate', y='temperature')
     ax.set(xlabel='Date', ylabel='Temperature')
     ax.set_xticklabels(labels, rotation=45, horizontalalignment='right')
     return figure
@@ -251,10 +246,15 @@ def draw_heatMap() -> Figure:
     heatmapData = pdResult.copy()
     heatmapData['shortDate'] = pd.to_datetime(heatmapData['timestamp']).apply(lambda x:x.date().strftime('%Y-%m-%d')) 
     heatmapData.drop(axis=1, inplace=True, columns=['windSpeed', 'windDirection', 'barometricPressure', 'visibility', 'textDescription', 'timestamp'])
-    heatmapPivot = pd.pivot_table(heatmapData, values='relativeHumidity', index='shortDate', columns='temperature')
+    heatmapPivot = pd.pivot_table(heatmapData, values='relativeHumidity', index='temperature', columns='shortDate')
   
     
-    sns.heatmap(heatmapPivot, annot=True, fmt="g", cmap='viridis', ax=ax)
+    heatmap = sns.heatmap(heatmapPivot, ax=ax, cmap="Spectral", xticklabels=2, yticklabels=2, cbar_kws={'label': 'Humidity'})
+    ax.set_yticklabels(heatmap.get_yticklabels(), rotation=0)
+    ax.invert_yaxis()
+    ax.set(xlabel='Date', ylabel='Temperature')
+    
+    
     return figure
 
 #Start app
