@@ -247,16 +247,13 @@ def draw_fourHist() -> Figure:
 def draw_heatMap() -> Figure:
     figure = intSNS()
     ax = figure.subplots()
+    
     heatmapData = pdResult.copy()
     heatmapData['shortDate'] = pd.to_datetime(heatmapData['timestamp']).apply(lambda x:x.date().strftime('%Y-%m-%d')) 
     heatmapData.drop(axis=1, inplace=True, columns=['windSpeed', 'windDirection', 'barometricPressure', 'visibility', 'textDescription', 'timestamp'])
-       
-    pd.set_option('display.max_columns', 1000)
-    print(heatmapData)
-    print(heatmapData.dtypes)
-    
     heatmapPivot = pd.pivot_table(heatmapData, values='relativeHumidity', index='shortDate', columns='temperature')
-    print(heatmapPivot)
+  
+    
     sns.heatmap(heatmapPivot, annot=True, fmt="g", cmap='viridis', ax=ax)
     return figure
 
