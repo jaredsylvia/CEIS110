@@ -45,7 +45,6 @@ pdResultConst = pdResult.copy()
 labels = pdResult['shortDate'].unique()
 
 
-xlabelNum = 14
 #Pandas dataframe tailing - MAYBE: Map all global variable calls to passing arguments
 def timeButton(days):
     global pdResult
@@ -59,10 +58,7 @@ def timeButton(days):
     startDate = datetime.datetime.now() - datetime.timedelta(days=days)
     endDate = endDate.strftime('%Y-%m-%dT%H:%M:%SZ')
     startDate = startDate.strftime('%Y-%m-%dT%H:%M:%SZ')
-    print(endDate)
-    print(startDate)
     pdResult = pdResult[(pdResult['timestamp'] > startDate) & (pdResult['timestamp'] <= endDate)]
-    #pdResult = pdResult.date_range(startDate, endDate)
     labels = pdResult['shortDate'].unique()
 
 
